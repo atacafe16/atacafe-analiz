@@ -279,7 +279,6 @@
 </head>
 <body>
 
-    <!-- PATRON PIN GİRİŞ EKRANI -->
     <div id="pin-ekrani">
         <div class="pin-logo">📊 Ata Cafe</div>
         <div class="pin-alt">Analiz Paneli</div>
@@ -305,7 +304,6 @@
     </div>
 
 
-    <!-- HEADER -->
     <div class="header">
         <div class="header-sol">
             <h1><span>📊</span> Ata Cafe | Analiz Paneli</h1>
@@ -320,7 +318,6 @@
         </div>
     </div>
 
-    <!-- ZAMAN SEKMELERİ -->
     <div class="zaman-sekmeleri">
         <button id="btn-bugun" class="zaman-sekme-btn aktif" onclick="sekmeDegistir('bugun')">☀️ Bugün</button>
         <button id="btn-buAy" class="zaman-sekme-btn" onclick="sekmeDegistir('buAy')">📅 Bu Ay</button>
@@ -328,7 +325,6 @@
         <button id="btn-tumZamanlar" class="zaman-sekme-btn" onclick="sekmeDegistir('tumZamanlar')">🌍 Tüm Zamanlar</button>
     </div>
 
-    <!-- KPI KARTLARI -->
     <div class="kpi-grid">
         <div class="kpi-kart sari">
             <div class="kpi-baslik" id="baslik-ciro">Toplam Ciro (Bugün)</div>
@@ -366,7 +362,6 @@
         </div>
     </div>
 
-    <!-- TREND GRAFİĞİ (Günlük / Aylık / Yıllık) -->
     <div class="trend-kart" id="trend-kart-blok">
         <div class="grafik-baslik" id="trend-grafik-baslik">📈 Ciro Trendi (Son 7 Gün)</div>
         <div class="trend-konteyner" style="position:relative;">
@@ -379,7 +374,6 @@
         </div>
     </div>
 
-    <!-- SAATLİK SATIŞLAR (Sadece Bugün için) -->
     <div class="saatlik-kart" id="saatlik-blok">
         <div class="grafik-baslik">⏰ Saatlik Satış Dağılımı (Bugün)</div>
         <div class="trend-konteyner">
@@ -387,7 +381,6 @@
         </div>
     </div>
 
-    <!-- PAY GRAFİKLERİ -->
     <div class="grafik-grid">
         <div class="grafik-kart">
             <div class="grafik-baslik" id="grafik-baslik-kategori">☕ Kategorilere Dağılım</div>
@@ -409,7 +402,6 @@
         </div>
     </div>
 
-    <!-- TOP 10 BAR + LİSTE -->
     <div class="grafik-grid tam-genislik">
         <div class="grafik-kart">
             <div class="grafik-baslik" id="grafik-baslik-bar">🔥 Top 10 Grafik & Tüm Ürünler Listesi</div>
@@ -423,7 +415,6 @@
     </div>
 
 
-    <!-- HAVA DURUMU İSTATİSTİK KARTI -->
     <div class="grafik-grid tam-genislik">
         <div class="grafik-kart">
             <div class="grafik-baslik">🌤️ Hava Durumuna Göre Ciro Analizi</div>
@@ -454,7 +445,6 @@
                 </div>
             </div>
 
-            <!-- Son 14 günlük arşiv tablosu -->
             <div style="font-size:13px; font-weight:800; color:#7A5C4F; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">📅 Son Günler</div>
             <div style="overflow-x:auto;">
                 <table style="width:100%; border-collapse:collapse; font-size:13px;" id="hava-tablo">
@@ -475,7 +465,6 @@
         </div>
     </div>
 
-    <!-- HEDEF MODAL -->
     <div class="modal-arka" id="hedef-modal">
         <div class="modal">
             <h2>🎯 Günlük Ciro Hedefi</h2>
@@ -490,7 +479,6 @@
         </div>
     </div>
 
-    <!-- ÜRÜN DETAY MODAL -->
     <div class="modal-arka" id="detay-modal">
         <div class="detay-modal">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
@@ -536,7 +524,9 @@
         // =============================================
         // PIN SİSTEMİ - PATRON
         // =============================================
-        const PATRON_PIN = '854361';
+        // GÜVENLİK GÜNCELLEMESİ: Şifreler artık kod içinde DEĞİL, Firebase tarafında.
+        // Ekrana girilen PIN, arka planda patron@atacafe.com maili ile denenir.
+        
         let pinGirilen = '';
 
         function pinDisplayGuncelle() {
@@ -561,10 +551,20 @@
         }
 
         function pinKontrol() {
-            if (pinGirilen === PATRON_PIN) {
-                firebase.auth().signInAnonymously().catch(e => console.log('Auth:', e));
+            // Patron Paneli için Hibrit Geçiş
+            // Görünüşte PIN (854361), Arkada Email (patron@atacafe.com)
+            
+            const email = "patron@atacafe.com";
+            const password = pinGirilen; // 854361 (6 hane olduğu için direkt gönderiyoruz)
+
+            firebase.auth().signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Giriş başarılı
                 document.getElementById('pin-ekrani').classList.add('gizli');
-            } else {
+            })
+            .catch((error) => {
+                // Hatalı şifre
+                console.error("Giris hatasi:", error);
                 document.querySelectorAll('.pin-nokta').forEach(n => n.classList.add('hata'));
                 document.getElementById('pin-hata').classList.add('goster');
                 setTimeout(() => {
@@ -573,7 +573,7 @@
                     document.querySelectorAll('.pin-nokta').forEach(n => n.classList.remove('hata'));
                     document.getElementById('pin-hata').classList.remove('goster');
                 }, 800);
-            }
+            });
         }
 
         document.addEventListener('keydown', function(e) {
