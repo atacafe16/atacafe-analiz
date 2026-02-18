@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ata Cafe | Yönetim & Analiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --kahve: #3D2314;
+            --kahve-orta: #6B3A2A;
+            --krem: #FDF6EC;
+            --sari: #F4A832;
+            --yesil: #4A9B6F;
+            --kirmizi: #C0392B;
+            --mavi: #2E86AB;
+            --mor: #8E44AD;
+            --arka-plan: #F4ECE1;
+            --kart-bg: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--arka-plan);
+            background-image: radial-gradient(circle at 50% 0%, rgba(107,58,42,0.06) 0%, transparent 70%);
+            color: var(--kahve);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--kahve) 0%, var(--kahve-orta) 100%);
+            color: white; padding: 20px 30px; border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(61, 35, 20, 0.25);
+        }
+        .header-sol { display: flex; flex-direction: column; gap: 4px; }
+        .header h1 { font-family: 'Playfair Display', serif; font-size: 28px; display: flex; align-items: center; gap: 12px; }
+        .header-son-guncelleme { font-size: 12px; opacity: 0.65; margin-left: 40px; }
+        .header-sag { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+        .canli-uyari {
+            display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15);
+            padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;
+        }
+        .nokta { width: 10px; height: 10px; background-color: #6EE7A0; border-radius: 50%; animation: yanipSonme 1.5s infinite; }
+        @keyframes yanipSonme { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
+
+        /* HEDEF AYARLAMA BUTONU */
+        .hedef-btn {
+            display: flex; align-items: center; gap: 6px; background: rgba(244, 168, 50, 0.25);
+            border: 1.5px solid rgba(244, 168, 50, 0.5); color: #F4A832;
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 800;
+            cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.2s;
+        }
+        .hedef-btn:hover { background: rgba(244, 168, 50, 0.4); }
+
+        /* ZAMAN SEKMELERİ */
+        .zaman-sekmeleri {
+            display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;
+            background: rgba(255,255,255,0.6); padding: 8px; border-radius: 16px;
+        }
+        .zaman-sekme-btn {
+            flex: 1; min-width: 120px; padding: 12px; border: none; border-radius: 10px;
+            background: transparent; color: var(--kahve-orta); font-size: 15px; font-weight: 800;
+            cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.3s;
+        }
+        .zaman-sekme-btn:hover { background: rgba(255,255,255,0.8); }
+        .zaman-sekme-btn.aktif { background: white; color: var(--kahve); box-shadow: 0 4px 15px rgba(0,0,0,0.08); transform: translateY(-2px); }
+
+        /* KPI KARTLARI */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .kpi-kart {
+            background: var(--kart-bg); padding: 22px 25px 18px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; gap: 6px; border-bottom: 5px solid var(--kahve-orta);
+            transition: transform 0.2s;
+        }
+        .kpi-kart:hover { transform: translateY(-2px); }
+        .kpi-kart.sari { border-bottom-color: var(--sari); }
+        .kpi-kart.yesil { border-bottom-color: var(--yesil); }
+        .kpi-kart.mavi { border-bottom-color: var(--mavi); }
+        .kpi-kart.mor { border-bottom-color: var(--mor); }
+        .kpi-kart.kirmizi { border-bottom-color: var(--kirmizi); }
+        .kpi-baslik { font-size: 12px; font-weight: 800; color: #7A5C4F; text-transform: uppercase; letter-spacing: 1px; }
+        .kpi-deger { font-size: 32px; font-weight: 900; color: var(--kahve); transition: color 0.3s; }
+        .kpi-trend {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: 800; margin-top: 2px;
+        }
+        .kpi-trend.yukari { color: #27AE60; }
+        .kpi-trend.asagi { color: #E74C3C; }
+        .kpi-trend.esit { color: #7A5C4F; }
+        .kpi-trend-ok { font-size: 14px; }
+
+        /* HEDEF PROGRESS BAR */
+        .hedef-satir {
+            margin-top: 8px; background: #F4ECE1; border-radius: 8px; height: 7px; overflow: hidden;
+        }
+        .hedef-dolgu {
+            height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--sari), #F39C12);
+            transition: width 0.8s ease;
+        }
+        .hedef-yazi {
+            font-size: 11px; color: #A08070; font-weight: 700; margin-top: 4px;
+        }
+
+        /* GRAFİKLER ALANI */
+        .grafik-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .tam-genislik { grid-template-columns: 1fr; }
+        
+        .grafik-kart {
+            background: var(--kart-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column;
+        }
+        .grafik-baslik {
+            font-size: 16px; font-weight: 900; margin-bottom: 20px; color: var(--kahve);
+            padding-bottom: 10px; border-bottom: 2px dashed #EDE0D4; text-align: center;
+        }
+        .grafik-container { position: relative; height: 260px; width: 100%; flex: 1; }
+
+        /* YAN YANA LISTE VE GRAFIK */
+        .grafik-ve-liste { display: flex; gap: 30px; align-items: stretch; }
+        .gvl-grafik { flex: 1.5; position: relative; height: 350px; }
+        .gvl-liste {
+            flex: 1; display: flex; flex-direction: column; gap: 10px;
+            max-height: 350px; overflow-y: auto; padding-right: 10px;
+        }
+        .gvl-liste::-webkit-scrollbar { width: 5px; }
+        .gvl-liste::-webkit-scrollbar-thumb { background: #D4B9A8; border-radius: 10px; }
+        
+        .siralama-satir {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #F9F6F0; padding: 12px 15px; border-radius: 10px;
+            border-left: 4px solid var(--sari); transition: background 0.2s;
+            cursor: pointer;
+        }
+        .siralama-satir:hover { background: #F2EBE1; }
+        .sr-sol { display: flex; align-items: center; gap: 12px; }
+        .sr-no { 
+            background: var(--kahve); color: white; width: 26px; height: 26px; 
+            display: flex; align-items: center; justify-content: center; 
+            border-radius: 50%; font-size: 13px; font-weight: 900; 
+            flex-shrink: 0;
+        }
+        .sr-isim { font-weight: 700; font-size: 15px; color: var(--kahve); }
+        .sr-adet { font-weight: 900; font-size: 15px; padding: 4px 10px; border-radius: 8px; white-space: nowrap;}
+        .siralama-satir.birinci { background: linear-gradient(135deg, #FFF8E7 0%, #FDEBBF 100%); border-color: #F39C12; }
+        .siralama-satir.birinci .sr-no { background: #F39C12; box-shadow: 0 0 10px rgba(243, 156, 18, 0.4); }
+
+        /* TREND / ZAMAN SERİSİ KARTI */
+        .trend-kart {
+            background: var(--kart-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .trend-baslik {
+            font-size: 16px; font-weight: 900; margin-bottom: 20px; color: var(--kahve);
+            padding-bottom: 10px; border-bottom: 2px dashed #EDE0D4; text-align: center;
+        }
+        .trend-konteyner { position: relative; height: 220px; }
+
+        /* SAATLİK KART */
+        .saatlik-kart {
+            background: var(--kart-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* MODAL */
+        .modal-arka { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-arka.acik { display: flex; }
+        .modal {
+            background: white; border-radius: 20px; padding: 35px; width: 90%; max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalGel 0.3s ease;
+        }
+        @keyframes modalGel { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal h2 { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--kahve); margin-bottom: 20px; }
+        .modal-alan { margin-bottom: 18px; }
+        .modal-alan label { display: block; font-size: 13px; font-weight: 800; color: #7A5C4F; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .modal-alan input {
+            width: 100%; padding: 12px 16px; border: 2px solid #EDE0D4; border-radius: 10px;
+            font-size: 16px; font-family: 'Nunito', sans-serif; font-weight: 700; color: var(--kahve);
+            outline: none; transition: border-color 0.2s;
+        }
+        .modal-alan input:focus { border-color: var(--sari); }
+        .modal-butonlar { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-btn {
+            flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 15px;
+            font-weight: 800; cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.2s;
+        }
+        .modal-btn.iptal { background: #F4ECE1; color: var(--kahve-orta); }
+        .modal-btn.kaydet { background: var(--kahve); color: white; }
+        .modal-btn.kaydet:hover { background: var(--kahve-orta); transform: translateY(-1px); }
+
+        /* ÜRÜN DETAY MODAL */
+        .detay-modal {
+            background: white; border-radius: 20px; padding: 35px; width: 90%; max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalGel 0.3s ease; max-height: 80vh; overflow-y: auto;
+        }
+        .detay-modal h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--kahve); margin-bottom: 5px; }
+        .detay-modal .kat-badge {
+            display: inline-block; padding: 3px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 800; margin-bottom: 20px;
+            background: #F4ECE1; color: var(--kahve-orta);
+        }
+        .detay-satir {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #F4ECE1;
+        }
+        .detay-satir-etiket { font-size: 13px; font-weight: 700; color: #7A5C4F; }
+        .detay-satir-deger { font-size: 18px; font-weight: 900; color: var(--kahve); }
+        .detay-grafik-container { position: relative; height: 200px; margin-top: 20px; }
+
+        @media (max-width: 1000px) {
+            .grafik-ve-liste { flex-direction: column; }
+            .gvl-liste { max-height: none; overflow-y: visible; }
+        }
+        @media (max-width: 600px) {
+            .header { flex-direction: column; gap: 15px; text-align: center; }
+            .header h1 { font-size: 22px; }
+            .header-son-guncelleme { margin-left: 0; text-align: center; }
+            .header-sag { justify-content: center; }
+            .zaman-sekme-btn { min-width: 45%; }
+        }
+
+        /* ===================== PIN EKRANI ===================== */
+        #pin-ekrani {
+            position: fixed; inset: 0; z-index: 9999;
+            background: linear-gradient(135deg, #3D2314 0%, #6B3A2A 100%);
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        #pin-ekrani.gizli { display: none; }
+        .pin-logo { font-family: 'Playfair Display', serif; font-size: 28px; color: white; margin-bottom: 6px; }
+        .pin-alt { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 32px; font-weight: 600; }
+        .pin-kart {
+            background: white; border-radius: 24px; padding: 32px 28px 24px;
+            width: 92%; max-width: 340px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .pin-baslik { font-size: 15px; font-weight: 800; color: #7A5C4F; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .pin-display { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+        .pin-nokta {
+            width: 14px; height: 14px; border-radius: 50%;
+            border: 2px solid #D4B9A8; background: transparent; transition: all 0.2s;
+        }
+        .pin-nokta.dolu { background: #3D2314; border-color: #3D2314; transform: scale(1.1); }
+        .pin-nokta.hata { background: #C0392B; border-color: #C0392B; animation: pinSalla 0.4s ease; }
+        @keyframes pinSalla {
+            0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+        }
+        .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+        .pin-btn {
+            aspect-ratio: 1; border: none; border-radius: 50%;
+            background: #FDF6EC; color: #3D2314;
+            font-size: 22px; font-weight: 900; font-family: 'Nunito', sans-serif;
+            cursor: pointer; transition: all 0.15s;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(107,58,42,0.1);
+        }
+        .pin-btn:active { transform: scale(0.9); background: #FDEBBF; }
+        .pin-btn.sil { background: #F0E6E0; font-size: 18px; }
+        .pin-btn.bos { background: transparent; box-shadow: none; cursor: default; pointer-events: none; }
+        .pin-hata-mesaj { font-size: 13px; font-weight: 800; color: #C0392B; margin-top: 14px; min-height: 18px; text-align: center; opacity: 0; transition: opacity 0.2s; }
+        .pin-hata-mesaj.goster { opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+    <!-- PATRON PIN GİRİŞ EKRANI -->
+    <div id="pin-ekrani">
+        <div class="pin-logo">📊 Ata Cafe</div>
+        <div class="pin-alt">Analiz Paneli</div>
+        <div class="pin-kart">
+            <div class="pin-baslik">PIN Kodunuzu Girin (6 hane)</div>
+            <div class="pin-display" id="pin-display"></div>
+            <div class="pin-grid">
+                <button class="pin-btn" onclick="pinGir('1')">1</button>
+                <button class="pin-btn" onclick="pinGir('2')">2</button>
+                <button class="pin-btn" onclick="pinGir('3')">3</button>
+                <button class="pin-btn" onclick="pinGir('4')">4</button>
+                <button class="pin-btn" onclick="pinGir('5')">5</button>
+                <button class="pin-btn" onclick="pinGir('6')">6</button>
+                <button class="pin-btn" onclick="pinGir('7')">7</button>
+                <button class="pin-btn" onclick="pinGir('8')">8</button>
+                <button class="pin-btn" onclick="pinGir('9')">9</button>
+                <button class="pin-btn bos"></button>
+                <button class="pin-btn" onclick="pinGir('0')">0</button>
+                <button class="pin-btn sil" onclick="pinSil()">⌫</button>
+            </div>
+            <div class="pin-hata-mesaj" id="pin-hata">Hatalı PIN! Tekrar deneyin.</div>
+        </div>
+    </div>
+
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-sol">
+            <h1><span>📊</span> Ata Cafe | Analiz Paneli</h1>
+            <div class="header-son-guncelleme" id="son-guncelleme">Yükleniyor...</div>
+        </div>
+        <div class="header-sag">
+            <button class="hedef-btn" onclick="hedefModalAc()">🎯 Hedef Belirle</button>
+            <div class="canli-uyari">
+                <div class="nokta"></div>
+                Sistem Canlı Bağlı
+            </div>
+        </div>
+    </div>
+
+    <!-- ZAMAN SEKMELERİ -->
+    <div class="zaman-sekmeleri">
+        <button id="btn-bugun" class="zaman-sekme-btn aktif" onclick="sekmeDegistir('bugun')">☀️ Bugün</button>
+        <button id="btn-buAy" class="zaman-sekme-btn" onclick="sekmeDegistir('buAy')">📅 Bu Ay</button>
+        <button id="btn-buYil" class="zaman-sekme-btn" onclick="sekmeDegistir('buYil')">🏆 Bu Yıl</button>
+        <button id="btn-tumZamanlar" class="zaman-sekme-btn" onclick="sekmeDegistir('tumZamanlar')">🌍 Tüm Zamanlar</button>
+    </div>
+
+    <!-- KPI KARTLARI -->
+    <div class="kpi-grid">
+        <div class="kpi-kart sari">
+            <div class="kpi-baslik" id="baslik-ciro">Toplam Ciro (Bugün)</div>
+            <div class="kpi-deger" id="kpi-ciro">0 ₺</div>
+            <div class="kpi-trend esit" id="trend-ciro"><span class="kpi-trend-ok">➡️</span> <span id="trend-ciro-yazi">—</span></div>
+            <div id="hedef-blok" style="display:none;">
+                <div class="hedef-satir"><div class="hedef-dolgu" id="hedef-dolgu" style="width:0%"></div></div>
+                <div class="hedef-yazi" id="hedef-yazi"></div>
+            </div>
+        </div>
+        <div class="kpi-kart yesil">
+            <div class="kpi-baslik" id="baslik-nakit">Alınan Nakit (Bugün)</div>
+            <div class="kpi-deger" id="kpi-nakit">0 ₺</div>
+            <div class="kpi-trend esit" id="trend-nakit"><span class="kpi-trend-ok">➡️</span> <span id="trend-nakit-yazi">—</span></div>
+        </div>
+        <div class="kpi-kart mavi">
+            <div class="kpi-baslik" id="baslik-urun">Satılan Ürün (Bugün)</div>
+            <div class="kpi-deger" id="kpi-urun">0 Adet</div>
+            <div class="kpi-trend esit" id="trend-urun"><span class="kpi-trend-ok">➡️</span> <span id="trend-urun-yazi">—</span></div>
+        </div>
+        <div class="kpi-kart mor">
+            <div class="kpi-baslik" id="baslik-ort">Ort. Sipariş Tutarı</div>
+            <div class="kpi-deger" id="kpi-ort">0 ₺</div>
+            <div class="kpi-trend esit" id="trend-ort"><span class="kpi-trend-ok">➡️</span> <span id="trend-ort-yazi">—</span></div>
+        </div>
+        <div class="kpi-kart kirmizi">
+            <div class="kpi-baslik" id="baslik-enCok">En Çok Satan</div>
+            <div class="kpi-deger" id="kpi-enCok" style="font-size:20px; line-height:1.3;">—</div>
+            <div style="font-size:12px; color:#A08070; font-weight:700; margin-top:4px;" id="kpi-enCok-adet"></div>
+        </div>
+        <div class="kpi-kart" style="border-bottom-color: #E67E22;">
+            <div class="kpi-baslik">⏱️ Ort. Masa Oturma Süresi</div>
+            <div class="kpi-deger" id="kpi-oturma">— dk</div>
+            <div style="font-size:12px; color:#A08070; font-weight:700; margin-top:4px;" id="kpi-oturma-aciklama">Son kapanan masalar baz alınır</div>
+        </div>
+    </div>
+
+    <!-- TREND GRAFİĞİ (Günlük / Aylık / Yıllık) -->
+    <div class="trend-kart" id="trend-kart-blok">
+        <div class="grafik-baslik" id="trend-grafik-baslik">📈 Ciro Trendi (Son 7 Gün)</div>
+        <div class="trend-konteyner" style="position:relative;">
+            <canvas id="trendGrafik"></canvas>
+            <div id="trend-bos-mesaj" style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; flex-direction:column; gap:8px;">
+                <div style="font-size:32px;">📊</div>
+                <div style="font-size:14px; font-weight:800; color:#A08070; text-align:center;">Henüz yeterli arşiv kaydı yok</div>
+                <div style="font-size:12px; color:#B8A090; text-align:center;">Gün kapatıldıkça grafik dolacak</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAATLİK SATIŞLAR (Sadece Bugün için) -->
+    <div class="saatlik-kart" id="saatlik-blok">
+        <div class="grafik-baslik">⏰ Saatlik Satış Dağılımı (Bugün)</div>
+        <div class="trend-konteyner">
+            <canvas id="saatlikGrafik"></canvas>
+        </div>
+    </div>
+
+    <!-- PAY GRAFİKLERİ -->
+    <div class="grafik-grid">
+        <div class="grafik-kart">
+            <div class="grafik-baslik" id="grafik-baslik-kategori">☕ Kategorilere Dağılım</div>
+            <div class="grafik-container">
+                <canvas id="kategoriPastaGrafik"></canvas>
+            </div>
+        </div>
+        <div class="grafik-kart">
+            <div class="grafik-baslik" id="grafik-baslik-urun">🍩 Ürünlere Göre Dağılım</div>
+            <div class="grafik-container">
+                <canvas id="urunPastaGrafik"></canvas>
+            </div>
+        </div>
+        <div class="grafik-kart">
+            <div class="grafik-baslik" id="grafik-baslik-odeme">💳 Nakit / Kredi Oranı</div>
+            <div class="grafik-container">
+                <canvas id="odemePastaGrafik"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP 10 BAR + LİSTE -->
+    <div class="grafik-grid tam-genislik">
+        <div class="grafik-kart">
+            <div class="grafik-baslik" id="grafik-baslik-bar">🔥 Top 10 Grafik & Tüm Ürünler Listesi</div>
+            <div class="grafik-ve-liste">
+                <div class="gvl-grafik">
+                    <canvas id="satisBarGrafik"></canvas>
+                </div>
+                <div class="gvl-liste" id="satis-liste-alani"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- HAVA DURUMU İSTATİSTİK KARTI -->
+    <div class="grafik-grid tam-genislik">
+        <div class="grafik-kart">
+            <div class="grafik-baslik">🌤️ Hava Durumuna Göre Ciro Analizi</div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;" id="hava-kpi-grid">
+                <div style="background:#FFF8EC; border-radius:12px; padding:16px; text-align:center; border-bottom:3px solid #F4A832;">
+                    <div style="font-size:28px; margin-bottom:4px;">☀️</div>
+                    <div style="font-size:11px; font-weight:800; color:#7A5C4F; text-transform:uppercase; letter-spacing:1px;">Güneşli Günler</div>
+                    <div style="font-size:22px; font-weight:900; color:#F4A832; margin:4px 0;" id="hava-gunes-ort">— ₺</div>
+                    <div style="font-size:11px; color:#A08070; font-weight:700;" id="hava-gunes-sayi">0 gün</div>
+                </div>
+                <div style="background:#F0F4FF; border-radius:12px; padding:16px; text-align:center; border-bottom:3px solid #2E86AB;">
+                    <div style="font-size:28px; margin-bottom:4px;">☁️</div>
+                    <div style="font-size:11px; font-weight:800; color:#7A5C4F; text-transform:uppercase; letter-spacing:1px;">Bulutlu Günler</div>
+                    <div style="font-size:22px; font-weight:900; color:#2E86AB; margin:4px 0;" id="hava-bulut-ort">— ₺</div>
+                    <div style="font-size:11px; color:#A08070; font-weight:700;" id="hava-bulut-sayi">0 gün</div>
+                </div>
+                <div style="background:#F0F8FF; border-radius:12px; padding:16px; text-align:center; border-bottom:3px solid #8E44AD;">
+                    <div style="font-size:28px; margin-bottom:4px;">🌧️</div>
+                    <div style="font-size:11px; font-weight:800; color:#7A5C4F; text-transform:uppercase; letter-spacing:1px;">Yağmurlu Günler</div>
+                    <div style="font-size:22px; font-weight:900; color:#8E44AD; margin:4px 0;" id="hava-yagmur-ort">— ₺</div>
+                    <div style="font-size:11px; color:#A08070; font-weight:700;" id="hava-yagmur-sayi">0 gün</div>
+                </div>
+                <div style="background:#F5FFF5; border-radius:12px; padding:16px; text-align:center; border-bottom:3px solid #4A9B6F;">
+                    <div style="font-size:28px; margin-bottom:4px;">❄️</div>
+                    <div style="font-size:11px; font-weight:800; color:#7A5C4F; text-transform:uppercase; letter-spacing:1px;">Karlı/Sisli Günler</div>
+                    <div style="font-size:22px; font-weight:900; color:#4A9B6F; margin:4px 0;" id="hava-kar-ort">— ₺</div>
+                    <div style="font-size:11px; color:#A08070; font-weight:700;" id="hava-kar-sayi">0 gün</div>
+                </div>
+            </div>
+
+            <!-- Son 14 günlük arşiv tablosu -->
+            <div style="font-size:13px; font-weight:800; color:#7A5C4F; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">📅 Son Günler</div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;" id="hava-tablo">
+                    <thead>
+                        <tr style="background:#FDF6EC;">
+                            <th style="padding:10px 12px; text-align:left; font-weight:800; color:#7A5C4F; border-radius:8px 0 0 8px;">Tarih</th>
+                            <th style="padding:10px 12px; text-align:center; font-weight:800; color:#7A5C4F;">Hava</th>
+                            <th style="padding:10px 12px; text-align:right; font-weight:800; color:#7A5C4F;">Sıcaklık</th>
+                            <th style="padding:10px 12px; text-align:right; font-weight:800; color:#7A5C4F; border-radius:0 8px 8px 0;">Ciro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hava-tablo-govde"></tbody>
+                </table>
+                <div id="hava-bos-mesaj" style="text-align:center; padding:30px; color:#A08070; font-weight:700; display:none;">
+                    Henüz hava durumu verisi yok. Gün kapatıldıkça burada birikecek. 🌤️
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEDEF MODAL -->
+    <div class="modal-arka" id="hedef-modal">
+        <div class="modal">
+            <h2>🎯 Günlük Ciro Hedefi</h2>
+            <div class="modal-alan">
+                <label>Günlük Hedef (₺)</label>
+                <input type="number" id="hedef-input" placeholder="Örn: 3000" min="0">
+            </div>
+            <div class="modal-butonlar">
+                <button class="modal-btn iptal" onclick="hedefModalKapat()">İptal</button>
+                <button class="modal-btn kaydet" onclick="hedefKaydet()">✓ Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÜRÜN DETAY MODAL -->
+    <div class="modal-arka" id="detay-modal">
+        <div class="detay-modal">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                <h2 id="detay-urun-adi">Ürün Adı</h2>
+                <button onclick="detayModalKapat()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#7A5C4F;line-height:1;">✕</button>
+            </div>
+            <div class="kat-badge" id="detay-kat-badge">Kategori</div>
+            <div class="detay-satir">
+                <div class="detay-satir-etiket">Bugün Satış</div>
+                <div class="detay-satir-deger" id="detay-bugun">—</div>
+            </div>
+            <div class="detay-satir">
+                <div class="detay-satir-etiket">Bu Ay Satış</div>
+                <div class="detay-satir-deger" id="detay-buay">—</div>
+            </div>
+            <div class="detay-satir">
+                <div class="detay-satir-etiket">Bu Yıl Satış</div>
+                <div class="detay-satir-deger" id="detay-buyil">—</div>
+            </div>
+            <div class="detay-satir">
+                <div class="detay-satir-etiket">Tüm Zamanlar</div>
+                <div class="detay-satir-deger" id="detay-tum">—</div>
+            </div>
+            <div class="detay-grafik-container" id="detay-grafik-blok">
+                <canvas id="detayGrafik"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===============================================
+        // FIREBASE BAĞLANTISI
+        // ===============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTCjrPLHb_jedf8B_V2G4kF7uwG5auY7M",
+            authDomain: "ata-cafe.firebaseapp.com",
+            databaseURL: "https://ata-cafe-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ata-cafe",
+            storageBucket: "ata-cafe.firebasestorage.app",
+            messagingSenderId: "510514380045",
+            appId: "1:510514380045:web:573513fb41577a24e64444"
+        };
+        // =============================================
+        // PIN SİSTEMİ - PATRON
+        // =============================================
+        const PATRON_PIN = '854361';
+        let pinGirilen = '';
+
+        function pinDisplayGuncelle() {
+            let d = document.getElementById('pin-display');
+            d.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                d.innerHTML += `<div class="pin-nokta ${i < pinGirilen.length ? 'dolu' : ''}"></div>`;
+            }
+        }
+
+        function pinGir(rakam) {
+            if (pinGirilen.length >= 6) return;
+            pinGirilen += rakam;
+            pinDisplayGuncelle();
+            if (pinGirilen.length === 6) setTimeout(pinKontrol, 200);
+        }
+
+        function pinSil() {
+            if (pinGirilen.length === 0) return;
+            pinGirilen = pinGirilen.slice(0, -1);
+            pinDisplayGuncelle();
+        }
+
+        function pinKontrol() {
+            if (pinGirilen === PATRON_PIN) {
+                firebase.auth().signInAnonymously().catch(e => console.log('Auth:', e));
+                document.getElementById('pin-ekrani').classList.add('gizli');
+            } else {
+                document.querySelectorAll('.pin-nokta').forEach(n => n.classList.add('hata'));
+                document.getElementById('pin-hata').classList.add('goster');
+                setTimeout(() => {
+                    pinGirilen = '';
+                    pinDisplayGuncelle();
+                    document.querySelectorAll('.pin-nokta').forEach(n => n.classList.remove('hata'));
+                    document.getElementById('pin-hata').classList.remove('goster');
+                }, 800);
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('pin-ekrani').classList.contains('gizli')) return;
+            if (e.key >= '0' && e.key <= '9') pinGir(e.key);
+            else if (e.key === 'Backspace') pinSil();
+        });
+
+        // Sayfa açılınca PIN display'i başlat
+        document.addEventListener('DOMContentLoaded', () => pinDisplayGuncelle());
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // ===============================================
+        // KATEGORİ SÖZLÜĞÜ
+        // ===============================================
+        const kategoriMap = {
+            "Çay": "Sıcak İçecekler", "Fincan Çay": "Sıcak İçecekler", "Oralet (Portakal)": "Sıcak İçecekler",
+            "Oralet (Kivi)": "Sıcak İçecekler", "Oralet (Tarçın)": "Sıcak İçecekler", "Oralet (Muz)": "Sıcak İçecekler",
+            "Oralet (Karadut)": "Sıcak İçecekler", "Oralet (Nanelimon)": "Sıcak İçecekler", "Oralet (Kakao)": "Sıcak İçecekler",
+            "Oralet (Kuşburnu)": "Sıcak İçecekler", "Türk Kahvesi": "Sıcak İçecekler", "Sütlü Türk Kahvesi": "Sıcak İçecekler",
+            "Menengiç Kahvesi": "Sıcak İçecekler", "Dibek Kahvesi": "Sıcak İçecekler", "Damla Sakızlı Türk Kahvesi": "Sıcak İçecekler",
+            "Nescafe": "Sıcak İçecekler", "Sütlü Nescafe": "Sıcak İçecekler", "Filtre Kahve": "Sıcak İçecekler",
+            "Ihlamur": "Sıcak İçecekler", "Ada Çayı": "Sıcak İçecekler", "Yeşil Çay": "Sıcak İçecekler",
+            "Salep": "Sıcak İçecekler", "Sıcak Çikolata": "Sıcak İçecekler", "Bardak Salep": "Sıcak İçecekler",
+            "Bardak Nescafe": "Sıcak İçecekler", "Sıcak Süt": "Sıcak İçecekler", "Sıcak Ballı Süt": "Sıcak İçecekler",
+            "Su": "Soğuk İçecekler", "Ice Americano": "Soğuk İçecekler", "Ice Latte": "Soğuk İçecekler",
+            "Churchill": "Soğuk İçecekler", "Kola Turka": "Soğuk İçecekler", "Limonata": "Soğuk İçecekler",
+            "Uludağ Gazoz": "Soğuk İçecekler", "Vişne Suyu": "Soğuk İçecekler", "Şeftali Suyu": "Soğuk İçecekler",
+            "Karışık Meyve Suyu": "Soğuk İçecekler", "Kutu Vişne Suyu": "Soğuk İçecekler", "Kutu Şeftali Suyu": "Soğuk İçecekler",
+            "Sade Soda": "Soğuk İçecekler", "Limonlu Soda": "Soğuk İçecekler", "Elmalı Soda": "Soğuk İçecekler",
+            "Narlı Soda": "Soğuk İçecekler", "Karpuz Çilekli Soda": "Soğuk İçecekler", "Küçük Ayran": "Soğuk İçecekler",
+            "Sucuk Kaşarlı Tost": "Yiyecekler", "Sade Kaşarlı Tost": "Yiyecekler", "Sade Sucuklu Tost": "Yiyecekler",
+            "Sucuk Kaşarlı Gözleme": "Yiyecekler", "Sade Kaşarlı Gözleme": "Yiyecekler", "Sade Sucuklu Gözleme": "Yiyecekler",
+            "Sade Patatesli Gözleme": "Yiyecekler", "Patates Kaşarlı Gözleme": "Yiyecekler", "Gözleme (Full Karışık)": "Yiyecekler",
+            "Sucuk Ekmek": "Yiyecekler",
+            "Tatlı Çeşitleri": "Tatlılar",
+            "Tuzlu Fıstık": "Atıştırmalıklar", "Karışık Çerez": "Atıştırmalıklar", "Çekirdek (Küçük)": "Atıştırmalıklar", "Çekirdek (Büyük)": "Atıştırmalıklar"
+        };
+
+        // ===============================================
+        // GLOBAL DEĞİŞKENLER
+        // ===============================================
+        let grafikler = {};
+        let aktifSekme = 'bugun';
+        let zamanVerileri = {
+            bugun: { nakit: 0, kredi: 0, toplam: 0, urunler: {}, siparisAdedi: 0 },
+            buAy:  { nakit: 0, kredi: 0, toplam: 0, urunler: {}, siparisAdedi: 0 },
+            buYil: { nakit: 0, kredi: 0, toplam: 0, urunler: {}, siparisAdedi: 0 },
+            tumZamanlar: { nakit: 0, kredi: 0, toplam: 0, urunler: {}, siparisAdedi: 0 }
+        };
+        // oncekiVeriler: gerçek arşiv karşılaştırması için
+        // bugun → dün (arsivGunluk[0])
+        // buAy  → geçen ay (arsivAylik[0])
+        // buYil → geçen yıl (arsivYillik[0])
+        let oncekiVeriler = {
+            bugun: { toplam: 0, nakit: 0, urun: 0, ort: 0, etiket: 'dün' },
+            buAy:  { toplam: 0, nakit: 0, urun: 0, ort: 0, etiket: 'geçen ay' },
+            buYil: { toplam: 0, nakit: 0, urun: 0, ort: 0, etiket: 'geçen yıl' },
+            tumZamanlar: { toplam: 0, nakit: 0, urun: 0, ort: 0, etiket: '' }
+        };
+        let gunlukArsiv = [];
+        let aylikArsiv = [];
+        let yillikArsiv = [];
+        let saatlikVeriler = {};
+        let hedefTutar = parseInt(localStorage.getItem('ataCafeHedef') || '0');
+        let detayGrafikOrnek = null;
+
+        const renkPaleti = {
+            bugun: '#2E86AB',
+            buAy: '#4A9B6F',
+            buYil: '#F4A832',
+            tumZamanlar: '#8E44AD'
+        };
+
+        // ===============================================
+        // YARDIMCI FONKSİYONLAR
+        // ===============================================
+        function nesneTopla(hedef, kaynak) {
+            if (!kaynak) return;
+            for (let k in kaynak) { hedef[k] = (hedef[k] || 0) + kaynak[k]; }
+        }
+
+        function formatTarih(tarih) {
+            return tarih.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' });
+        }
+
+        function trendHesapla(yeni, eski) {
+            if (eski === 0) return null;
+            return ((yeni - eski) / eski * 100).toFixed(1);
+        }
+
+        function trendGuncelle(elemId, yaziId, yeni, eski, etiket) {
+            let elem = document.getElementById(elemId);
+            let yaziElem = document.getElementById(yaziId);
+
+            // Karşılaştırma verisi yoksa hiç gösterme
+            if (!etiket) {
+                elem.style.display = 'none';
+                return;
+            }
+            elem.style.display = 'flex';
+
+            let oran = trendHesapla(yeni, eski);
+            if (eski === 0) {
+                elem.className = 'kpi-trend esit';
+                elem.querySelector('.kpi-trend-ok').innerText = '➡️';
+                yaziElem.innerText = etiket + ' verisi yok';
+            } else if (!oran || parseFloat(oran) == 0) {
+                elem.className = 'kpi-trend esit';
+                elem.querySelector('.kpi-trend-ok').innerText = '➡️';
+                yaziElem.innerText = etiket + ' ile aynı';
+            } else if (parseFloat(oran) > 0) {
+                elem.className = 'kpi-trend yukari';
+                elem.querySelector('.kpi-trend-ok').innerText = '↑';
+                yaziElem.innerText = `%${Math.abs(oran)} ${etiket}den fazla`;
+            } else {
+                elem.className = 'kpi-trend asagi';
+                elem.querySelector('.kpi-trend-ok').innerText = '↓';
+                yaziElem.innerText = `%${Math.abs(oran)} ${etiket}den az`;
+            }
+        }
+
+        // ===============================================
+        // FİREBASE VERİ DİNLEME
+        // ===============================================
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (!user) return;
+            db.ref('/').on('value', function(snapshot) {
+            let data = snapshot.val();
+            if (!data) return;
+
+            Chart.defaults.font.family = "'Nunito', sans-serif";
+            Chart.defaults.color = "#7A5C4F";
+
+            // Son güncelleme
+            let simdi = new Date();
+            document.getElementById('son-guncelleme').innerText = `Son güncelleme: ${simdi.toLocaleTimeString('tr-TR')}`;
+
+            gunlukArsiv  = (data.arsivler?.gunluk)  ? Object.values(data.arsivler.gunluk).filter(x=>x)  : [];
+            aylikArsiv   = (data.arsivler?.aylik)   ? Object.values(data.arsivler.aylik).filter(x=>x)   : [];
+            yillikArsiv  = (data.arsivler?.yillik)  ? Object.values(data.arsivler.yillik).filter(x=>x)  : [];
+            saatlikVeriler = data.saatlikSatislar || {};
+
+            // Oturma süreleri
+            let oturmaSureleri = data.istatistikler?.oturmaSureleri
+                ? Object.values(data.istatistikler.oturmaSureleri).filter(s => s > 0 && s < 480)
+                : [];
+            if (oturmaSureleri.length > 0) {
+                let ortOturma = Math.round(oturmaSureleri.reduce((a,b) => a+b, 0) / oturmaSureleri.length);
+                let saat = Math.floor(ortOturma / 60);
+                let dk = ortOturma % 60;
+                let yazı = saat > 0 ? saat + ' sa ' + dk + ' dk' : dk + ' dk';
+                document.getElementById('kpi-oturma').innerText = yazı;
+                document.getElementById('kpi-oturma-aciklama').innerText = oturmaSureleri.length + ' kapanışın ortalaması';
+            } else {
+                document.getElementById('kpi-oturma').innerText = '— dk';
+                document.getElementById('kpi-oturma-aciklama').innerText = 'Henüz veri yok';
+            }
+
+            // -----------------------------------------------
+            // ÖNCEKI VERİLER: gerçek arşiv karşılaştırması
+            // -----------------------------------------------
+            // Bugün vs Dün: arsivGunluk[0] = en son kapanan gün = dün
+            let dun = gunlukArsiv[0] || null;
+            let dunUrun = dun ? Object.values(dun.urunler || {}).reduce((a,b)=>a+b,0) : 0;
+            oncekiVeriler.bugun = {
+                toplam: dun ? (dun.toplam || 0) : 0,
+                nakit:  dun ? (dun.nakit  || 0) : 0,
+                urun:   dunUrun,
+                ort:    (dun && dun.siparisAdedi > 0) ? dun.toplam / dun.siparisAdedi : 0,
+                etiket: dun ? ('dün (' + dun.tarih + ')') : 'dün'
+            };
+
+            // Bu Ay vs Geçen Ay: arsivAylik[0] = en son kapanan ay = geçen ay
+            let gecenAy = aylikArsiv[0] || null;
+            let gecenAyUrun = gecenAy ? Object.values(gecenAy.urunler || {}).reduce((a,b)=>a+b,0) : 0;
+            oncekiVeriler.buAy = {
+                toplam: gecenAy ? (gecenAy.toplam || 0) : 0,
+                nakit:  gecenAy ? (gecenAy.nakit  || 0) : 0,
+                urun:   gecenAyUrun,
+                ort:    (gecenAy && gecenAy.siparisAdedi > 0) ? gecenAy.toplam / gecenAy.siparisAdedi : 0,
+                etiket: gecenAy ? ('geçen ay (' + gecenAy.ay + ')') : 'geçen ay'
+            };
+
+            // Bu Yıl vs Geçen Yıl: arsivYillik[0] = en son kapanan yıl = geçen yıl
+            let gecenYil = yillikArsiv[0] || null;
+            let gecenYilUrun = gecenYil ? Object.values(gecenYil.urunler || {}).reduce((a,b)=>a+b,0) : 0;
+            oncekiVeriler.buYil = {
+                toplam: gecenYil ? (gecenYil.toplam || 0) : 0,
+                nakit:  gecenYil ? (gecenYil.nakit  || 0) : 0,
+                urun:   gecenYilUrun,
+                ort:    (gecenYil && gecenYil.siparisAdedi > 0) ? gecenYil.toplam / gecenYil.siparisAdedi : 0,
+                etiket: gecenYil ? ('geçen yıl (' + gecenYil.yil + ')') : 'geçen yıl'
+            };
+
+            // Tüm Zamanlar için karşılaştırma yok
+            oncekiVeriler.tumZamanlar = { toplam: 0, nakit: 0, urun: 0, ort: 0, etiket: '' };
+
+            // BUGÜN
+            zamanVerileri.bugun = {
+                nakit: data.ciroNakit || 0, kredi: data.ciroKredi || 0,
+                toplam: (data.ciroNakit || 0) + (data.ciroKredi || 0),
+                urunler: { ...(data.satilanUrunler || {}) },
+                siparisAdedi: data.siparisAdedi || 0
+            };
+
+            // BU AY
+            zamanVerileri.buAy = { ...zamanVerileri.bugun, urunler: { ...zamanVerileri.bugun.urunler }, siparisAdedi: zamanVerileri.bugun.siparisAdedi };
+            gunlukArsiv.forEach(k => {
+                zamanVerileri.buAy.nakit += (k.nakit || 0);
+                zamanVerileri.buAy.kredi += (k.kredi || 0);
+                zamanVerileri.buAy.toplam += (k.toplam || 0);
+                zamanVerileri.buAy.siparisAdedi += (k.siparisAdedi || 0);
+                nesneTopla(zamanVerileri.buAy.urunler, k.urunler);
+            });
+
+            // BU YIL
+            zamanVerileri.buYil = { ...zamanVerileri.buAy, urunler: { ...zamanVerileri.buAy.urunler }, siparisAdedi: zamanVerileri.buAy.siparisAdedi };
+            aylikArsiv.forEach(k => {
+                zamanVerileri.buYil.nakit += (k.nakit || 0);
+                zamanVerileri.buYil.kredi += (k.kredi || 0);
+                zamanVerileri.buYil.toplam += (k.toplam || 0);
+                zamanVerileri.buYil.siparisAdedi += (k.siparisAdedi || 0);
+                nesneTopla(zamanVerileri.buYil.urunler, k.urunler);
+            });
+
+            // TÜM ZAMANLAR
+            zamanVerileri.tumZamanlar = { ...zamanVerileri.buYil, urunler: { ...zamanVerileri.buYil.urunler }, siparisAdedi: zamanVerileri.buYil.siparisAdedi };
+            yillikArsiv.forEach(k => {
+                zamanVerileri.tumZamanlar.nakit += (k.nakit || 0);
+                zamanVerileri.tumZamanlar.kredi += (k.kredi || 0);
+                zamanVerileri.tumZamanlar.toplam += (k.toplam || 0);
+                zamanVerileri.tumZamanlar.siparisAdedi += (k.siparisAdedi || 0);
+                nesneTopla(zamanVerileri.tumZamanlar.urunler, k.urunler);
+            });
+
+            ekraniGuncelle();
+            }); // db.ref kapanış
+        }); // onAuthStateChanged kapanış
+
+
+        // ===============================================
+        // HAVA DURUMU İSTATİSTİKLERİ
+        // ===============================================
+        function havaIstatistikGuncelle() {
+            let havaliGunler = gunlukArsiv.filter(g => g.hava || g.havaEmoji);
+
+            if (havaliGunler.length === 0) {
+                document.getElementById('hava-bos-mesaj').style.display = 'block';
+                document.getElementById('hava-tablo').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('hava-bos-mesaj').style.display = 'none';
+            document.getElementById('hava-tablo').style.display = 'table';
+
+            // Kategorilere ayır
+            let kategoriler = { gunes: [], bulut: [], yagmur: [], kar: [] };
+
+            havaliGunler.forEach(g => {
+                let emoji = g.havaEmoji || '';
+                if (['☀️','🌤️'].includes(emoji)) kategoriler.gunes.push(g.toplam);
+                else if (['☁️'].includes(emoji)) kategoriler.bulut.push(g.toplam);
+                else if (['🌧️','🌦️','⛈️'].includes(emoji)) kategoriler.yagmur.push(g.toplam);
+                else if (['❄️','🌫️'].includes(emoji)) kategoriler.kar.push(g.toplam);
+            });
+
+            // KPI kartlarını güncelle
+            let ort = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+            let fmt = val => val !== null ? val.toLocaleString('tr-TR') + ' ₺' : '— ₺';
+
+            document.getElementById('hava-gunes-ort').innerText = fmt(ort(kategoriler.gunes));
+            document.getElementById('hava-gunes-sayi').innerText = kategoriler.gunes.length + ' gün';
+            document.getElementById('hava-bulut-ort').innerText = fmt(ort(kategoriler.bulut));
+            document.getElementById('hava-bulut-sayi').innerText = kategoriler.bulut.length + ' gün';
+            document.getElementById('hava-yagmur-ort').innerText = fmt(ort(kategoriler.yagmur));
+            document.getElementById('hava-yagmur-sayi').innerText = kategoriler.yagmur.length + ' gün';
+            document.getElementById('hava-kar-ort').innerText = fmt(ort(kategoriler.kar));
+            document.getElementById('hava-kar-sayi').innerText = kategoriler.kar.length + ' gün';
+
+            // Son 14 günü tabloya yaz
+            let tbody = document.getElementById('hava-tablo-govde');
+            tbody.innerHTML = '';
+            [...gunlukArsiv].slice(0, 14).forEach(g => {
+                let sicaklikYazi = g.sicaklik !== null && g.sicaklik !== undefined ? g.sicaklik + '°C' : '—';
+                let havaYazi = g.havaEmoji ? g.havaEmoji + ' ' + (g.hava || '') : (g.hava || '—');
+                tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid #F4ECE1;">
+                    <td style="padding:10px 12px; font-weight:700; color:#3D2314;">${g.tarih || '—'}</td>
+                    <td style="padding:10px 12px; text-align:center; color:#6B3A2A;">${havaYazi}</td>
+                    <td style="padding:10px 12px; text-align:right; font-weight:700; color:#6B3A2A;">${sicaklikYazi}</td>
+                    <td style="padding:10px 12px; text-align:right; font-weight:900; color:#F4A832;">${(g.toplam||0).toLocaleString('tr-TR')} ₺</td>
+                </tr>`;
+            });
+        }
+
+        // ===============================================
+        // EKRAN GÜNCELLEME
+        // ===============================================
+        function sekmeDegistir(sekme) {
+            aktifSekme = sekme;
+            document.querySelectorAll('.zaman-sekme-btn').forEach(btn => btn.classList.remove('aktif'));
+            document.getElementById('btn-' + sekme).classList.add('aktif');
+            ekraniGuncelle();
+        }
+
+        function ekraniGuncelle() {
+            let v = zamanVerileri[aktifSekme];
+            let anaRenk = renkPaleti[aktifSekme];
+
+            let etiket = { bugun:'Bugün', buAy:'Bu Ay', buYil:'Bu Yıl', tumZamanlar:'Tüm Zamanlar' }[aktifSekme];
+
+            // Başlıklar
+            document.getElementById('baslik-ciro').innerText = `Toplam Ciro (${etiket})`;
+            document.getElementById('baslik-nakit').innerText = `Alınan Nakit (${etiket})`;
+            document.getElementById('baslik-urun').innerText = `Satılan Ürün (${etiket})`;
+            document.getElementById('baslik-ort').innerText = `Ort. Sipariş Tutarı (${etiket})`;
+            document.getElementById('baslik-enCok').innerText = `En Çok Satan (${etiket})`;
+            document.getElementById('grafik-baslik-kategori').innerText = `☕ Kategorilere Dağılım (${etiket})`;
+            document.getElementById('grafik-baslik-urun').innerText = `🍩 Ürünlere Göre Dağılım (${etiket})`;
+            document.getElementById('grafik-baslik-odeme').innerText = `💳 Nakit / Kredi Oranı (${etiket})`;
+            document.getElementById('grafik-baslik-bar').innerText = `🔥 Top 10 Grafik & Tüm Ürünler Listesi (${etiket})`;
+
+            // KPI Değerleri
+            let urunAdet = Object.values(v.urunler).reduce((a,b) => a+b, 0);
+            let ortTutar = v.siparisAdedi > 0 ? Math.round(v.toplam / v.siparisAdedi) : 0;
+
+            document.getElementById('kpi-ciro').innerText = v.toplam.toLocaleString('tr-TR') + " ₺";
+            document.getElementById('kpi-nakit').innerText = v.nakit.toLocaleString('tr-TR') + " ₺";
+            document.getElementById('kpi-urun').innerText = urunAdet + " Adet";
+            document.getElementById('kpi-ort').innerText = ortTutar.toLocaleString('tr-TR') + " ₺";
+
+            // En çok satan
+            let sirali = Object.entries(v.urunler).sort((a,b) => b[1]-a[1]);
+            if (sirali.length > 0) {
+                document.getElementById('kpi-enCok').innerText = sirali[0][0];
+                document.getElementById('kpi-enCok-adet').innerText = sirali[0][1] + " adet satıldı";
+            } else {
+                document.getElementById('kpi-enCok').innerText = "—";
+                document.getElementById('kpi-enCok-adet').innerText = "";
+            }
+
+            // Renkler
+            document.getElementById('kpi-ciro').style.color = anaRenk;
+            document.getElementById('kpi-nakit').style.color = anaRenk;
+            document.getElementById('kpi-urun').style.color = anaRenk;
+            document.getElementById('kpi-ort').style.color = anaRenk;
+
+            // Trend okları (gerçek arşiv karşılaştırması)
+            let eski = oncekiVeriler[aktifSekme];
+            trendGuncelle('trend-ciro', 'trend-ciro-yazi', v.toplam, eski.toplam, eski.etiket);
+            trendGuncelle('trend-nakit', 'trend-nakit-yazi', v.nakit, eski.nakit, eski.etiket);
+            trendGuncelle('trend-urun', 'trend-urun-yazi', urunAdet, eski.urun, eski.etiket);
+            trendGuncelle('trend-ort', 'trend-ort-yazi', ortTutar, eski.ort, eski.etiket);
+
+            // Hedef progress (sadece bugün)
+            hedefGuncelle(v.toplam);
+
+            // Saatlik blok (sadece bugün)
+            document.getElementById('saatlik-blok').style.display = aktifSekme === 'bugun' ? '' : 'none';
+            if (aktifSekme === 'bugun') saatlikGrafikOlustur();
+
+            // Trend grafiği (tüm sekmeler)
+            trendGrafikOlustur(anaRenk, aktifSekme);
+
+            // Diğer grafikler
+            kategoriPastaGrafikOlustur('kategoriPastaGrafik', v.urunler);
+            urunPastaGrafikOlustur('urunPastaGrafik', v.urunler);
+            odemeDoughnutOlustur('odemePastaGrafik', v.nakit, v.kredi);
+            barVeListeOlustur('satisBarGrafik', 'satis-liste-alani', v.urunler, anaRenk);
+        }
+
+        // ===============================================
+        // HEDEF FONKSİYONLARI
+        // ===============================================
+        function hedefGuncelle(ciro) {
+            let blok = document.getElementById('hedef-blok');
+            if (hedefTutar > 0 && aktifSekme === 'bugun') {
+                blok.style.display = '';
+                let oran = Math.min(100, (ciro / hedefTutar * 100));
+                document.getElementById('hedef-dolgu').style.width = oran + '%';
+                document.getElementById('hedef-yazi').innerText = `Hedefe ulaşma: %${oran.toFixed(1)} (Hedef: ${hedefTutar.toLocaleString('tr-TR')} ₺)`;
+            } else {
+                blok.style.display = 'none';
+            }
+        }
+
+        function hedefModalAc() {
+            document.getElementById('hedef-input').value = hedefTutar || '';
+            document.getElementById('hedef-modal').classList.add('acik');
+        }
+        function hedefModalKapat() { document.getElementById('hedef-modal').classList.remove('acik'); }
+        function hedefKaydet() {
+            let val = parseInt(document.getElementById('hedef-input').value);
+            if (!isNaN(val) && val >= 0) {
+                hedefTutar = val;
+                localStorage.setItem('ataCafeHedef', val);
+            }
+            hedefModalKapat();
+            ekraniGuncelle();
+        }
+
+        // Modal dışına tıklayınca kapat
+        document.getElementById('hedef-modal').addEventListener('click', function(e) {
+            if (e.target === this) hedefModalKapat();
+        });
+        document.getElementById('detay-modal').addEventListener('click', function(e) {
+            if (e.target === this) detayModalKapat();
+        });
+
+        // ===============================================
+        // TREND GRAFİĞİ
+        // ===============================================
+        function trendGrafikOlustur(renk, sekme) {
+            let labels = [], veriler = [];
+            let baslik = '';
+
+            if (sekme === 'bugun') {
+                let gecmis = [...gunlukArsiv].reverse().slice(-6);
+                gecmis.forEach(g => { labels.push(g.tarih || '?'); veriler.push(g.toplam || 0); });
+                labels.push('Bugün');
+                veriler.push(zamanVerileri.bugun.toplam);
+                baslik = '📈 Günlük Ciro Trendi (Son 7 Gün)';
+            } else if (sekme === 'buAy') {
+                let gecmis = [...gunlukArsiv].reverse().slice(-13);
+                gecmis.forEach(g => { labels.push(g.tarih || '?'); veriler.push(g.toplam || 0); });
+                labels.push('Bugün');
+                veriler.push(zamanVerileri.bugun.toplam);
+                baslik = '📈 Günlük Ciro Trendi (Bu Ay)';
+            } else if (sekme === 'buYil') {
+                let gecmis = [...aylikArsiv].reverse().slice(-11);
+                gecmis.forEach(a => { labels.push(a.ay || '?'); veriler.push(a.toplam || 0); });
+                labels.push('Bu Ay');
+                veriler.push(zamanVerileri.buAy.toplam);
+                baslik = '📈 Aylık Ciro Trendi (Bu Yıl)';
+            } else if (sekme === 'tumZamanlar') {
+                let gecmis = [...yillikArsiv].reverse();
+                gecmis.forEach(y => { labels.push(y.yil || '?'); veriler.push(y.toplam || 0); });
+                labels.push('Bu Yıl');
+                veriler.push(zamanVerileri.buYil.toplam);
+                baslik = '📈 Yıllık Ciro Trendi';
+            }
+
+            document.getElementById('trend-grafik-baslik').innerText = baslik;
+            document.getElementById('trend-kart-blok').style.display = '';
+
+            // Veri yoksa "henüz kayıt yok" mesajı göster
+            if (labels.length < 2) {
+                if (grafikler['trendGrafik']) { grafikler['trendGrafik'].destroy(); delete grafikler['trendGrafik']; }
+                document.getElementById('trendGrafik').style.display = 'none';
+                document.getElementById('trend-bos-mesaj').style.display = 'flex';
+                return;
+            }
+
+            document.getElementById('trendGrafik').style.display = '';
+            document.getElementById('trend-bos-mesaj').style.display = 'none';
+
+            if (grafikler['trendGrafik']) grafikler['trendGrafik'].destroy();
+            let ctx = document.getElementById('trendGrafik').getContext('2d');
+            let gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            gradient.addColorStop(0, renk + '44');
+            gradient.addColorStop(1, renk + '00');
+
+            grafikler['trendGrafik'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ciro (₺)',
+                        data: veriler,
+                        borderColor: renk,
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: renk,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            grid: { color: '#F4ECE1' },
+                            ticks: { callback: v => v.toLocaleString('tr-TR') + ' ₺' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ===============================================
+        // SAATLİK GRAFİK
+        // ===============================================
+        function saatlikGrafikOlustur() {
+            let saatler = [];
+            let adetler = [];
+
+            for (let s = 6; s <= 23; s++) {
+                let key = s.toString().padStart(2, '0');
+                saatler.push(key + ':00');
+                adetler.push(saatlikVeriler[key] || 0);
+            }
+
+            let toplamSaatlik = adetler.reduce((a,b)=>a+b,0);
+            if (toplamSaatlik === 0) {
+                // Firebase'de saatlikSatislar yoksa simüle et (0 göster)
+            }
+
+            if (grafikler['saatlikGrafik']) grafikler['saatlikGrafik'].destroy();
+            let ctx = document.getElementById('saatlikGrafik').getContext('2d');
+            let maxAdet = Math.max(...adetler, 1);
+            let renkler = adetler.map(a => {
+                if (a === 0) return '#EDE0D4';
+                let oran = a / maxAdet;
+                if (oran > 0.7) return '#C0392B';
+                if (oran > 0.4) return '#F4A832';
+                return '#2E86AB';
+            });
+
+            grafikler['saatlikGrafik'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: saatler,
+                    datasets: [{
+                        label: 'Satış Adedi',
+                        data: adetler,
+                        backgroundColor: renkler,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#F4ECE1' }, ticks: { stepSize: 1 } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ===============================================
+        // DİĞER GRAFİKLER (PASTA, DOUGHNUT, BAR)
+        // ===============================================
+        function kategoriPastaGrafikOlustur(canvasId, urunObjesi) {
+            let katToplam = { "Sıcak İçecekler": 0, "Soğuk İçecekler": 0, "Yiyecekler": 0, "Tatlılar": 0, "Atıştırmalıklar": 0 };
+            for (let urun in urunObjesi) {
+                let kat = kategoriMap[urun] || "Diğer";
+                if (katToplam[kat] !== undefined) katToplam[kat] += urunObjesi[urun];
+            }
+            let veriler = Object.values(katToplam);
+            let toplamSatis = veriler.reduce((a,b)=>a+b,0);
+            let cizimVerileri = toplamSatis === 0 ? [1,1,1,1,1] : veriler;
+            let renkler = toplamSatis === 0
+                ? ['#E0E0E0','#E0E0E0','#E0E0E0','#E0E0E0','#E0E0E0']
+                : ['#C0392B','#2E86AB','#F4A832','#8E44AD','#4A9B6F'];
+
+            if (grafikler[canvasId]) grafikler[canvasId].destroy();
+            let ctx = document.getElementById(canvasId).getContext('2d');
+            grafikler[canvasId] = new Chart(ctx, {
+                type: 'pie',
+                data: { labels: Object.keys(katToplam), datasets: [{ data: cizimVerileri, backgroundColor: renkler, borderWidth: 2, hoverOffset: 8 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, tooltip: { enabled: toplamSatis > 0 } } }
+            });
+        }
+
+        function urunPastaGrafikOlustur(canvasId, urunObjesi) {
+            let sirali = Object.entries(urunObjesi).sort((a, b) => b[1] - a[1]);
+            let labels = [], data = [], digerToplam = 0;
+            for (let i = 0; i < sirali.length; i++) {
+                if (i < 9) { labels.push(sirali[i][0]); data.push(sirali[i][1]); }
+                else digerToplam += sirali[i][1];
+            }
+            if (digerToplam > 0) { labels.push("Diğerleri"); data.push(digerToplam); }
+            let bos = (data.length === 0);
+            let cizimVerileri = bos ? [1] : data;
+            let cizimLabels = bos ? ["Kayıt Yok"] : labels;
+            let renkler = bos ? ['#E0E0E0'] : ['#E74C3C','#3498DB','#F1C40F','#2ECC71','#9B59B6','#E67E22','#1ABC9C','#34495E','#D35400','#95A5A6'];
+
+            if (grafikler[canvasId]) grafikler[canvasId].destroy();
+            let ctx = document.getElementById(canvasId).getContext('2d');
+            grafikler[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: cizimLabels, datasets: [{ data: cizimVerileri, backgroundColor: renkler, borderWidth: 2, hoverOffset: 8 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, tooltip: { enabled: !bos } } }
+            });
+        }
+
+        function odemeDoughnutOlustur(canvasId, nakit, kredi) {
+            let bos = (nakit === 0 && kredi === 0);
+            if (grafikler[canvasId]) grafikler[canvasId].destroy();
+            let ctx = document.getElementById(canvasId).getContext('2d');
+            grafikler[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Nakit', 'Kredi Kartı'],
+                    datasets: [{ data: bos ? [1] : [nakit, kredi], backgroundColor: bos ? ['#E0E0E0'] : ['#4A9B6F','#F4A832'], borderWidth: 0, hoverOffset: 10 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', display: !bos }, tooltip: { enabled: !bos } } }
+            });
+        }
+
+        function barVeListeOlustur(canvasId, listeId, urunObjesi, renk) {
+            let siraliTumu = Object.entries(urunObjesi).sort((a, b) => b[1] - a[1]);
+            let siraliTop10 = siraliTumu.slice(0, 10);
+            let isimler = siraliTop10.map(u => u[0]);
+            let adetler = siraliTop10.map(u => u[1]);
+
+            if (grafikler[canvasId]) grafikler[canvasId].destroy();
+            let ctx = document.getElementById(canvasId).getContext('2d');
+            grafikler[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: isimler.length > 0 ? isimler : ["Kayıt Yok"],
+                    datasets: [{ label: 'Satış Adedi', data: adetler.length > 0 ? adetler : [0], backgroundColor: renk, borderRadius: 6 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
+            });
+
+            let listeAlani = document.getElementById(listeId);
+            listeAlani.innerHTML = "";
+
+            if (siraliTumu.length === 0) {
+                listeAlani.innerHTML = "<div style='text-align:center; padding:20px; color:#A08070;'>Bu döneme ait kayıt bulunamadı.</div>";
+                return;
+            }
+
+            siraliTumu.forEach((item, index) => {
+                let isBirinci = index === 0 ? " birinci" : "";
+                let noRenk = index === 0 ? "#F39C12" : renk;
+                let adetBg = index === 0 ? "#FFF3D6" : renk + "22";
+
+                let html = `
+                <div class="siralama-satir${isBirinci}" style="border-left-color: ${noRenk};" onclick="urunDetayAc('${item[0].replace(/'/g,"\\'")}')">
+                    <div class="sr-sol">
+                        <div class="sr-no" style="background: ${noRenk};">${index + 1}</div>
+                        <div class="sr-isim">${item[0]}</div>
+                    </div>
+                    <div class="sr-adet" style="color:${noRenk}; background:${adetBg};">${item[1]} adet</div>
+                </div>`;
+                listeAlani.innerHTML += html;
+            });
+        }
+
+        // ===============================================
+        // ÜRÜN DETAY MODAL
+        // ===============================================
+        function urunDetayAc(urunAdi) {
+            document.getElementById('detay-urun-adi').innerText = urunAdi;
+            let kat = kategoriMap[urunAdi] || "Diğer";
+            document.getElementById('detay-kat-badge').innerText = kat;
+
+            let val = (obj, k) => (obj[k] || 0);
+            document.getElementById('detay-bugun').innerText = val(zamanVerileri.bugun.urunler, urunAdi) + ' adet';
+            document.getElementById('detay-buay').innerText = val(zamanVerileri.buAy.urunler, urunAdi) + ' adet';
+            document.getElementById('detay-buyil').innerText = val(zamanVerileri.buYil.urunler, urunAdi) + ' adet';
+            document.getElementById('detay-tum').innerText = val(zamanVerileri.tumZamanlar.urunler, urunAdi) + ' adet';
+
+            // Geçmiş günlerde bu ürünün satışı
+            let tarihler = [], satislar = [];
+            let gecmis = [...gunlukArsiv].reverse().slice(-7);
+            gecmis.forEach(g => {
+                tarihler.push(g.tarih || '?');
+                satislar.push(val(g.urunler || {}, urunAdi));
+            });
+            tarihler.push('Bugün');
+            satislar.push(val(zamanVerileri.bugun.urunler, urunAdi));
+
+            let blok = document.getElementById('detay-grafik-blok');
+            if (gecmis.length > 0) {
+                blok.style.display = '';
+                if (detayGrafikOrnek) detayGrafikOrnek.destroy();
+                let ctx = document.getElementById('detayGrafik').getContext('2d');
+                detayGrafikOrnek = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: tarihler,
+                        datasets: [{ label: 'Satış', data: satislar, backgroundColor: '#6B3A2A', borderRadius: 6 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { ticks: { stepSize: 1 }, grid: { color: '#F4ECE1' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            } else {
+                blok.style.display = 'none';
+            }
+
+            document.getElementById('detay-modal').classList.add('acik');
+        }
+
+        function detayModalKapat() {
+            document.getElementById('detay-modal').classList.remove('acik');
+        }
+    </script>
+</body>
+</html>
